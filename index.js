@@ -1,188 +1,171 @@
-require("dns").setDefaultResultOrder("ipv4first");
 require("dotenv").config();
-
+// ==============================
+// IMPORTS
+// ==============================
 const express = require("express");
 const mongoose = require("mongoose");
 const axios = require("axios");
+require("dotenv").config();
+
 const OpenAI = require("openai");
 
+// ==============================
+// APP SETUP
+// ==============================
 const app = express();
 app.use(express.json());
 
-/* ===========================
-   🔐 ENV VARIABLES
-=========================== */
-const {
-  PORT = 5000,
-  PAGE_ACCESS_TOKEN,
-  VERIFY_TOKEN,
-  OPENAI_API_KEY,
-  MONGO_URI,
-} = process.env;
+// ==============================
+// ENV VARIABLES
+// ==============================
+const PORT = process.env.PORT || 10000;
+const MONGO_URI = process.env.MONGO_URI;
+const VERIFY_TOKEN = process.env.VERIFY_TOKEN;
+const PAGE_ACCESS_TOKEN = process.env.PAGE_ACCESS_TOKEN;
 
-/* ===========================
-   🧠 OPENAI SETUP
-=========================== */
-const openai = new OpenAI({
-  apiKey: OPENAI_API_KEY,
+const Openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
 });
 
-/* ===========================
-   🗄️ DATABASE CONNECTION (SRV)
-=========================== */
-const connectDB = async () => {
-  try {
-    await mongoose.connect(process.env.MONGO_URI, {
-      serverSelectionTimeoutMS: 5000,
-      family: 4,
-    });
+// ==============================
+// DATABASE CONNECTION
+// ==============================
+mongoose
+  .connect(MONGO_URI)
+  .then(() => console.log("✅ MongoDB Connected"))
+  .catch((err) => console.error("❌ MongoDB Error:", err));
 
-    console.log("✅ MongoDB Connected (SRV - FIXED)");
-  } catch (err) {
-    console.error("❌ MongoDB Connection Error:", err.message);
-    process.exit(1);
-  }
-};
-
-/* ===========================
-   📦 SCHEMA (Conversation)
-=========================== */
-const messageSchema = new mongoose.Schema({
-  role: String,
-  content: String,
-  timestamp: { type: Date, default: Date.now },
+// ==============================
+// ROOT ROUTE
+// ==============================
+app.get("/", (req, res) => {
+  res.send("🚀 AI Bot is Running");
 });
 
-const conversationSchema = new mongoose.Schema({
-  userId: { type: String, required: true },
-  messages: [messageSchema],
-});
-
-const Conversation = mongoose.model("Conversation", conversationSchema);
-
-/* ===========================
-   🤖 AI RESPONSE GENERATOR
-=========================== */
-const generateReply = async (userId, userMessage) => {
-  try {
-    let convo = await Conversation.findOne({ userId });
-
-    if (!convo) {
-      convo = new Conversation({ userId, messages: [] });
-    }
-
-    // Save user message
-    convo.messages.push({ role: "user", content: userMessage });
-
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: convo.messages.slice(-10),
-    });
-
-    const reply = response.choices[0].message.content;
-
-    // Save bot reply
-    convo.messages.push({ role: "assistant", content: reply });
-
-    await convo.save();
-
-    return reply;
-  } catch (err) {
-    console.error("❌ AI Error:", err.message);
-    return "Sorry, something went wrong. Try again later.";
-  }
-};
-
-/* ===========================
-   📤 SEND MESSAGE (META API)
-=========================== */
-const sendMessage = async (recipientId, message) => {
-  try {
-    await axios.post(
-      "https://graph.facebook.com/v19.0/me/messages",
-      {
-        recipient: { id: recipientId },
-        message: { text: message },
-      },
-      {
-        params: {
-          access_token: PAGE_ACCESS_TOKEN,
-        },
-      }
-    );
-
-    console.log("✅ Message sent");
-  } catch (error) {
-    console.error(
-      "❌ Send Error:",
-      error.response?.data || error.message
-    );
-  }
-};
-
-/* ===========================
-   🔄 WEBHOOK VERIFY (GET)
-=========================== */
+// ==============================
+// WEBHOOK VERIFICATION (GET)
+// ==============================
 app.get("/webhook", (req, res) => {
   const mode = req.query["hub.mode"];
   const token = req.query["hub.verify_token"];
   const challenge = req.query["hub.challenge"];
 
   if (mode === "subscribe" && token === VERIFY_TOKEN) {
-    console.log("✅ Webhook verified");
-    res.status(200).send(challenge);
+    console.log("✅ Webhook Verified");
+    return res.status(200).send(challenge);
   } else {
-    res.sendStatus(403);
+    console.log("❌ Webhook Verification Failed");
+    return res.sendStatus(403);
   }
 });
 
-/* ===========================
-   🔄 WEBHOOK RECEIVE (POST)
-=========================== */
+// ==============================
+// WEBHOOK RECEIVER (POST)
+// ==============================
 app.post("/webhook", async (req, res) => {
-  try {
-    const body = req.body;
+  const body = req.body;
 
-    if (body.object === "page") {
-      for (const entry of body.entry) {
-        const event = entry.messaging?.[0];
+  if (body.object === "page" || body.object === "instagram") {
+    for (const entry of body.entry) {
+      const event = entry.messaging[0];
 
-        if (!event || !event.message) continue;
-
+      if (event.message && event.message.text) {
         const senderId = event.sender.id;
-        const userText = event.message.text;
+        const userMessage = event.message.text;
 
-        console.log("👤 User:", userText);
+        console.log("👤 User:", userMessage);
+		
 
-        const reply = await generateReply(senderId, userText);
 
-        await sendMessage(senderId, reply);
+        try {
+          // ============================
+          // OPENAI RESPONSE
+          // ============================
+          const aiResponse = await openai.chat.completions.create({
+            model: "gpt-4o-mini",
+            messages: [
+              {
+                role: "system",
+                content: `
+You are Scaleflow AI, a business assistant for companies.
+
+IMPORTANT:
+You are NOT a general AI like ChatGPT.
+You ONLY talk about business services, automation, and helping clients.
+
+Your purpose:
+- Help businesses grow using AI
+- Explain services like:
+  • AI chatbots
+  • Lead generation systems
+  • Automation tools
+  • Sales funnels
+  • Appointment booking systems
+
+STRICT RULES:
+- Never say you can help with homework, writing, translation, or general knowledge
+- Never list generic AI capabilities
+- Always answer as a business service provider
+- Keep replies short, clear, and engaging
+
+STYLE:
+- Human-like
+- Professional but friendly
+- Ask follow-up questions
+
+EXAMPLE:
+If user asks "What services do you offer?"
+
+Reply like:
+"We help businesses automate their customer interactions using AI chatbots, generate high-quality leads, and set up booking systems to increase conversions.  
+
+What kind of business are you running?"
+
+GOAL:
+Convert the user into a lead or conversation.
+`
+                   `",
+              },
+              {
+                role: "user",
+                content: userMessage,
+              },
+            ],
+			temperature:0.7
+          });
+
+          const botReply = aiResponse.choices[0].message.content.trim();
+
+          console.log("🤖 AI Reply:", botReply);
+		  console.log("Incoming message:", userMessage);
+
+          // ============================
+          // SEND MESSAGE BACK TO USER
+          // ============================
+          await axios.post(
+            `https://graph.facebook.com/v18.0/me/messages?access_token=${process.env.PAGE_ACCESS_TOKEN}`,
+            {
+              recipient: { id: senderId },
+              message: { text: botReply },
+            }
+          );
+
+          console.log("✅ Message sent");
+        } catch (error) {
+          console.error("❌ Error:", error.response?.data || error.message);
+        }
       }
     }
 
-    res.sendStatus(200);
-  } catch (err) {
-    console.error("❌ Webhook Error:", err.message);
-    res.sendStatus(500);
+    return res.status(200).send("EVENT_RECEIVED");
+  } else {
+    return res.sendStatus(404);
   }
 });
 
-/* ===========================
-   🧪 HEALTH CHECK ROUTE
-=========================== */
-app.get("/", (req, res) => {
-  res.send("🚀 SaaS AI Bot is Running");
+// ==============================
+// START SERVER
+// ==============================
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT}`);
 });
-
-/* ===========================
-   🚀 START SERVER
-=========================== */
-const startServer = async () => {
-  await connectDB();
-
-  app.listen(PORT, () => {
-    console.log(`🚀 Server running on port ${PORT}`);
-  });
-};
-
-startServer();
