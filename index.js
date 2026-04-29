@@ -1,3 +1,4 @@
+console.log("NEW CODE RUNNING");
 require("dotenv").config();
 // ==============================
 // IMPORTS
