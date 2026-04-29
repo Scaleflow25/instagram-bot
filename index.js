@@ -81,6 +81,7 @@ app.post("/webhook", async (req, res) => {
           // ============================
           // OPENAI RESPONSE
           // ============================
+		  console.log("SYSTEM PROMPT ACTIVE");
           const aiResponse = await openai.chat.completions.create({
             model: "gpt-4o-mini",
             messages: [
