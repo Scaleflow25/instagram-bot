@@ -88,8 +88,7 @@ app.post("/webhook", async (req, res) => {
             messages: [
               {
                 role: "system",
-                content: `
-You are Scaleflow AI, a business assistant for companies.
+                content: `You are Scaleflow AI, a business assistant for companies.
 
 IMPORTANT:
 You are NOT a general AI like ChatGPT.
@@ -124,8 +123,7 @@ Reply like:
 What kind of business are you running?"
 
 GOAL:
-Convert the user into a lead or conversation.
-`
+Convert the user into a lead or conversation.`
                    `",
               },
               {
