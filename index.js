@@ -1,3 +1,4 @@
+import OpenAI from"OpenAI"
 console.log("NEW CODE RUNNING");
 require("dotenv").config();
 // ==============================
