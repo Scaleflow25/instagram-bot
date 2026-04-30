@@ -1,4 +1,3 @@
-import OpenAI from"OpenAI"
 console.log("NEW CODE RUNNING");
 require("dotenv").config();
 // ==============================
@@ -25,7 +24,7 @@ const MONGO_URI = process.env.MONGO_URI;
 const VERIFY_TOKEN = process.env.VERIFY_TOKEN;
 const PAGE_ACCESS_TOKEN = process.env.PAGE_ACCESS_TOKEN;
 
-const Openai = new OpenAI({
+const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
