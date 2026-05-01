@@ -6,16 +6,18 @@ module.exports = async function rewriteReply(openai, badReply, userMessage) {
         {
           role: "system",
           content: `
-Rewrite this message to sound like a confident, natural human.
+Rewrite this message to sound like a confident human, not an explanation.
 
 Rules:
 - Max 2 sentences
-- No corporate words
-- No "we help businesses"
-- No "our services"
-- Keep it simple and conversational
-- Include one natural question
-- Sound like texting, not marketing
+- Start directly (NO "it's all about", NO "we help")
+- Make it sound sharp and natural
+- Slightly conversational, not formal
+- Include one relevant question
+- No corporate or generic phrases
+
+Goal:
+Make it feel like a smart person texting, not explaining.
 `
         },
         {

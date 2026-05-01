@@ -1,32 +1,35 @@
 module.exports = function filterReply(reply) {
-  if (!reply) return "";
+  if (!reply) return {};
 
   const lower = reply.toLowerCase();
 
-  // 🚫 Block corporate / boring phrases
   const bannedPhrases = [
     "we specialize",
     "our services",
     "what we offer",
     "we help businesses",
     "i’d love to",
-    "i would love to",
     "our solutions",
     "streamline",
     "automating conversations"
   ];
 
-  // ❌ If bad phrase found → mark as bad
+  const weakOpeners = [
+    "it's all about",
+    "basically we",
+    "we help you",
+    "our goal is",
+    "we provide"
+  ];
+
   const isBad = bannedPhrases.some(p => lower.includes(p));
-
-  // ❌ Too long (feels like paragraph)
-  const isTooLong = reply.length > 220;
-
-  // ❌ No question (no engagement)
+  const isWeak = weakOpeners.some(p => lower.includes(p));
+  const isTooLong = reply.length > 200;
   const hasQuestion = reply.includes("?");
 
   return {
     isBad,
+    isWeak,
     isTooLong,
     hasQuestion
   };

@@ -53,7 +53,7 @@ ALWAYS:
     const check = filterReply(reply);
 
     // 🚨 Step 2: Rewrite if needed
-    if (check.isBad || check.isTooLong || !check.hasQuestion) {
+    if (check.isBad || check.isWeak || check.isTooLong || !check.hasQuestion) {
       console.log("⚠️ Rewriting reply...");
       reply = await rewriteReply(openai, reply, userMessage);
     }
