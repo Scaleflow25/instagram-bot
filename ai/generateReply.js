@@ -72,8 +72,7 @@ Make the user feel comfortable, curious, and open — not sold to.
     }
 
     // 🚨 Step 2: Rewrite if needed
-    if (check.isBad || check.isWeak || check.isTooLong || !check.hasQuestion || check.isAggressive) {
-      console.log("⚠️ Rewriting reply...");
+     // ALWAYS Rewrite for elite tone
       reply = await rewriteReply(openai, reply, userMessage);
     }
 

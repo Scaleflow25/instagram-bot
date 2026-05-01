@@ -1,38 +1,34 @@
 module.exports = async function rewriteReply(openai, badReply, userMessage) {
   try {
     const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [
-        {
-          role: "system",
-          content: `
-Rewrite this message to sound like a confident human, not an explanation.
+  model: "gpt-4o-mini",
+  messages: [
+    {
+      role: "system",
+      content: `
+Rewrite the message to sound like a real human sales expert.
 
 Rules:
-- Max 2 sentences
-- Start directly (NO "it's all about", NO "we help")
-- Make it sound sharp and natural
-- Slightly conversational, not formal
-- Include one relevant question
-- No corporate or generic phrases
+- Make it feel natural and conversational
+- Remove corporate / robotic tone completely
+- Make it warm, friendly, and slightly premium
+- Not too short, not long (2–4 lines)
+- Add a soft human touch (like "Got you", "Nice", "Makes sense")
+- Keep ONE clear benefit
+- End with a simple, natural question
+
+DO NOT:
+- Sound like a company
+- Use phrases like "we specialize", "we focus on", "our services"
+- Be pushy or aggressive
 
 Goal:
-Make it feel like a smart person texting, not explaining.
+Make the reply feel like a real human chatting — someone you'd trust.
 `
-        },
-        {
-          role: "user",
-          content: `User said: "${userMessage}"
-Bad reply: "${badReply}"
-Rewrite it better.`
-        }
-      ]
-    });
-
-    return response.choices[0].message.content;
-
-  } catch (err) {
-    console.error("Rewrite Error:", err.message);
-    return badReply;
-  }
-};
+    },
+    {
+      role: "user",
+      content: originalReply
+    }
+  ]
+});
