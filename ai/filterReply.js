@@ -4,19 +4,12 @@ module.exports = function filterReply(reply) {
   const lower = reply.toLowerCase();
 
   const bannedPhrases = [
-    "we specialize",
-    "our services include",
-    "industry-leading",
-    "revolutionary",
-    "cutting-edge",
-  ];
-
-  const weakOpeners = [
-    "it's all about",
-    "basically we",
-    "we help you",
-    "our goal is",
-    "we provide"
+    "we help businesses",
+    "our services",
+    "we focus on",
+    "streamline",
+    "enhance",
+	"customer intercations"
   ];
 
   const aggressivePhrases = [
