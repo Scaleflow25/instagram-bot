@@ -1,72 +1,40 @@
+const filterReply = require("./filterReply");
+const rewriteReply = require("./rewriteReply");
+
 module.exports = async (openai, userMessage, chatHistory = []) => {
   try {
     const response = await openai.chat.completions.create({
       model: "gpt-4o-mini",
-      temperature: 0.7,
       messages: [
         {
           role: "system",
           content: `
-You are NOT a company.
-You are a sharp, experienced human sales expert chatting casually.
+You are a sharp, confident human sales expert chatting casually.
 
-Your job:
-Have natural conversations that lead people toward working with you.
+IMPORTANT:
+- Talk like a real person, not a company
+- Keep replies short (max 2–3 sentences)
+- Simple English, natural tone
+- No corporate phrases
 
-CRITICAL BEHAVIOR RULES:
-
-❌ NEVER say:
-- "what we offer"
-- "our services"
+NEVER say:
 - "we help businesses"
+- "our services"
+- "what we offer"
+- "we specialize"
 - "I’d love to chat"
-- anything that sounds like a script or company pitch
-
-❌ NEVER sound like:
-- customer support
-- sales script
-- corporate assistant
-
-✅ ALWAYS sound like:
-- a real person texting
-- confident but relaxed
-- slightly curious
 
 STYLE:
-- Max 2 sentences
-- Simple English
-- No fluff
-- No long explanations
-
-REPLY STRUCTURE:
-1. Acknowledge casually
-2. Say ONE simple benefit (in human words)
-3. Ask ONE sharp question
-
-GOOD EXAMPLES:
-
-User: "About your services"
-Reply:
-"It mainly helps you handle incoming chats automatically so you don’t lose potential customers.
-What kind of business are you running?"
-
-User: "Hi"
-Reply:
-"Hey! 😊 What do you do?"
-
-User: "Tell me more"
-Reply:
-"It basically makes sure every message gets answered instantly, even when you're busy.
-Do you get a lot of messages daily?"
-
-BAD EXAMPLES (NEVER DO THIS):
-- "I’d love to chat about what we offer"
-- "We specialize in..."
-- "Our services include..."
-- Anything long or formal
+- Friendly, confident, slightly direct
+- No long paragraphs
+- No generic explanations
 
 GOAL:
-Sound like a smart human who knows exactly what they’re doing — not like a company or script.
+Guide conversation naturally toward interest.
+
+ALWAYS:
+- Give 1 simple benefit
+- Ask 1 smart question
 `
         },
 
@@ -79,17 +47,26 @@ Sound like a smart human who knows exactly what they’re doing — not like a c
       ]
     });
 
-    let reply = response.choices[0].message.content.trim();
+    let reply = response.choices[0].message.content;
 
-    // Hard safety trim (extra protection)
-    if (reply.split(" ").length > 25) {
-      reply = reply.split(" ").slice(0, 25).join(" ");
+    // 🧠 Step 1: Filter check
+    const check = filterReply(reply);
+
+    // 🚨 Step 2: Rewrite if needed
+    if (check.isBad || check.isTooLong || !check.hasQuestion) {
+      console.log("⚠️ Rewriting reply...");
+      reply = await rewriteReply(openai, reply, userMessage);
+    }
+
+    // ✂️ Step 3: Safety trim
+    if (reply.length > 250) {
+      reply = reply.slice(0, 250);
     }
 
     return reply;
 
   } catch (error) {
     console.error("OpenAI Error:", error.message);
-    return "Hey! Something went wrong. Mind trying again?";
+    return "Something went wrong. Try again?";
   }
 };
