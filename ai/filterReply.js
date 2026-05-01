@@ -22,6 +22,13 @@ module.exports = function filterReply(reply) {
     "we provide"
   ];
 
+  const aggressivePhrases = [
+  "let's skip the fluff",
+  "cut to the chase",
+  "get straight to the point"
+  ];
+
+  const isAggressive = aggressivePhrases.some(p => lower.includes(p));
   const isBad = bannedPhrases.some(p => lower.includes(p));
   const isWeak = weakOpeners.some(p => lower.includes(p));
   const isTooLong = reply.length > 200;
