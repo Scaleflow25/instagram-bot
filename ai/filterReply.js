@@ -5,13 +5,10 @@ module.exports = function filterReply(reply) {
 
   const bannedPhrases = [
     "we specialize",
-    "our services",
-    "what we offer",
-    "we help businesses",
-    "i’d love to",
-    "our solutions",
-    "streamline",
-    "automating conversations"
+    "our services include",
+    "industry-leading",
+    "revolutionary",
+    "cutting-edge",
   ];
 
   const weakOpeners = [
@@ -38,6 +35,7 @@ module.exports = function filterReply(reply) {
     isBad,
     isWeak,
     isTooLong,
-    hasQuestion
+    hasQuestion,
+	isAggressive
   };
 };
