@@ -4,20 +4,17 @@ module.exports = function filterReply(reply) {
   const lower = reply.toLowerCase();
 
   const bannedPhrases = [
-    "we help businesses",
-    "our services",
     "we specialize",
-    "streamline",
-    "customer interactions"
+    "our services",
+    "what we offer",
+    "we focus on"
   ];
 
   const weakOpeners = [
-    "it's all about",
     "basically",
-    "we help",
-    "our goal",
-    "we provide",
-    "we're all about"
+    "you know",
+    "it's all about",
+    "we help you"
   ];
 
   const aggressivePhrases = [
@@ -26,17 +23,11 @@ module.exports = function filterReply(reply) {
     "get straight to the point"
   ];
 
-  const isBad = bannedPhrases.some(p => lower.includes(p));
-  const isWeak = weakOpeners.some(p => lower.includes(p));
-  const isAggressive = aggressivePhrases.some(p => lower.includes(p));
-  const isTooLong = reply.length > 200;
-  const hasQuestion = reply.includes("?");
-
   return {
-    isBad,
-    isWeak,
-    isAggressive,
-    isTooLong,
-    hasQuestion
+    isBad: bannedPhrases.some(p => lower.includes(p)),
+    isWeak: weakOpeners.some(p => lower.includes(p)),
+    isAggressive: aggressivePhrases.some(p => lower.includes(p)),
+    isTooLong: reply.length > 200,
+    hasQuestion: reply.includes("?")
   };
 };

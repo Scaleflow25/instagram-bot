@@ -1,92 +1,64 @@
 const filterReply = require("./filterReply");
-const rewriteReply = require("./rewriteReply");
 
 module.exports = async (openai, userMessage, chatHistory = []) => {
   try {
+
+    // 🔥 HARD CONTROL: Pricing logic
+    const lowerMsg = userMessage.toLowerCase();
+
+    if (lowerMsg.includes("price") || lowerMsg.includes("cost")) {
+      return "Got you 👍 Our plans usually start around ₹3–5k/month depending on setup. How many messages are you handling daily?";
+    }
+
+    // 🔥 SYSTEM PROMPT (CORE BRAIN)
+    const systemPrompt = `
+You are a real human sales expert from Scaleflow AI.
+
+You help businesses automate conversations, capture leads, and increase conversions.
+
+IMPORTANT RULES:
+- Never say you are an AI
+- Never say "I don't provide services"
+- Never sound like ChatGPT
+- Never over-explain
+- Never repeat the same question again
+
+STYLE:
+- 2 sentences max (VERY IMPORTANT)
+- Short, confident, natural
+- Slightly conversational (like "Got you 👍", "Makes sense")
+
+STRUCTURE:
+1. Acknowledge
+2. Give ONE clear benefit
+3. Ask ONE smart question
+
+AVOID:
+- "we specialize"
+- "it depends"
+- "typically"
+- "you know"
+- "great way"
+- "sounds like"
+
+GOAL:
+Sound like a sharp business operator who knows exactly what they’re doing.
+`;
+
     const response = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
-        {
-          role: "system",
-          content: `
-You are a professional business consultant.
-
-RULES:
-- Keep replies to max 2–3 sentences
-- No fluff, no motivational talk
-- No phrases like "sounds like", "nice", "great way"
-- Speak clearly and directly
-
-STRUCTURE:
-1. Short acknowledgment
-2. One clear business insight (leads, missed replies, automation)
-3. One direct question
-
-PLATFORM:
-- Do NOT assume Instagram
-- Speak generally unless user mentions platform
-
-GOAL:
-Sound sharp, practical, and trustworthy — not chatty.
-`
-        },
+        { role: "system", content: systemPrompt },
         ...chatHistory,
-        {
-          role: "user",
-          content: userMessage
-        }
-      ]
+        { role: "user", content: userMessage }
+      ],
+      temperature: 0.7
     });
 
     let reply = response.choices[0].message.content;
 
-    // ✅ Filter
-    const check = filterReply(reply);
-
-    // ✅ Rewrite if needed
-    if (check.isBad || check.isWeak || check.isTooLong || !check.hasQuestion) {
-      reply = await rewriteReply(openai, reply, userMessage);
-    }
-
-    // 🔥 Step 3: Hard enforce elite style
-    function cleanReply(reply) {
-    if (!reply) return "";
-
-    // Remove fluff phrases
-    const banned = [
-    "it sounds like",
-    "it's awesome",
-    "nice to think",
-    "you know",
-    "great way",
-    "makes sense",
-    "don't you think"
-    ];
-
-    let cleaned = reply;
-    banned.forEach(p => {
-    cleaned = cleaned.replace(new RegExp(p, "gi"), "");
-    });
-
-    // Keep only first 2–3 sentences
-    const sentences = cleaned.split(/[.!?]/).filter(s => s.trim());
-    cleaned = sentences.slice(0, 3).join(". ") + ".";
-
-    return cleaned.trim();
-    }
-
-    // apply it
-    reply = cleanReply(reply);
-
-    // Ensure reply has a question
-    if (!reply.includes("?")) {
-    reply += " Are you currently handling all messages yourself?";
-    }
-
-    // ✅ Safety trim
-    if (reply.length > 250) {
-      reply = reply.slice(0, 250);
-    }
+    // 🔥 CLEANING LAYER
+    reply = cleanReply(reply, chatHistory);
 
     return reply;
 
@@ -95,3 +67,40 @@ Sound sharp, practical, and trustworthy — not chatty.
     return "Hey, something went wrong on my end. Give me a second and try again 🙂";
   }
 };
+
+
+// 🔥 ELITE CLEANER FUNCTION
+function cleanReply(reply, chatHistory) {
+  if (!reply) return "";
+
+  // Remove weak phrases
+  const removeWords = [
+    "it sounds like",
+    "you know",
+    "great way",
+    "typically",
+    "depends",
+    "we specialize",
+    "we focus on"
+  ];
+
+  removeWords.forEach(word => {
+    reply = reply.replace(new RegExp(word, "gi"), "");
+  });
+
+  // Remove repeated questions
+  const lastBotMessages = chatHistory
+    .filter(m => m.role === "assistant")
+    .map(m => m.content)
+    .join(" ");
+
+  if (lastBotMessages.includes("handling all messages")) {
+    reply = reply.replace(/Are you.messages.\?/gi, "");
+  }
+
+  // Limit to 2 sentences max
+  let parts = reply.split(/[.!?]/).filter(s => s.trim());
+  reply = parts.slice(0, 2).join(". ") + ".";
+
+  return reply.trim();
+}
