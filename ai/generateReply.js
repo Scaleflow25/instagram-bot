@@ -82,9 +82,8 @@ Sound like someone who understands the problem instantly and leads the conversat
     "Is the issue speed or follow-ups?",
      "Do you feel leads drop off after first message?"
     ];
-	return `Makes sense 👍 ${randomFollowUp}`;
-
     const randomFollowUp = followUps[Math.floor(Math.random() * followUps.length)];
+	return `Makes sense 👍 ${randomFollowUp}`;
 
 	const response = await openai.chat.completions.create({
       model: "gpt-4o-mini",
