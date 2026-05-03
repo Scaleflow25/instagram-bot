@@ -1,147 +1,130 @@
-const filterReply = require("./filterReply");
-
-module.exports = async (openai, userMessage, chatHistory = []) => {
+module.exports = async function generateReply(openai, userMessage, context = {}) {
   try {
+    const msg = (userMessage || "").toLowerCase();
 
-    // 🔥 HARD CONTROL: Pricing logic
-    const lowerMsg = userMessage.toLowerCase();
-
-    if (
-      lowerMsg.includes("price") ||
-      lowerMsg.includes("cost") ||
-      lowerMsg.includes("charge") ||
-      lowerMsg.includes("pricing")
-    ) {
-      return "Got you 👍 Most setups start around ₹3–5k/month depending on how busy things are. Are you getting steady DMs or just occasional ones?";
+    // ===== 1. INTENT DETECTION =====
+    function detectIntent(text) {
+      if (text.includes("price") || text.includes("cost")) return "pricing";
+      if (text.includes("service") || text.includes("what do you do")) return "service";
+      if (text.includes("fake") || text.includes("real")) return "trust";
+      if (text.includes("yes") || text.includes("ok")) return "positive";
+      if (text.includes("lead") || text.includes("dm") || text.includes("message")) return "problem";
+      return "general";
     }
 
-    // 🔥 SYSTEM PROMPT (CORE BRAIN)
+    const intent = detectIntent(msg);
+
+    // ===== 2. STAGE MANAGEMENT =====
+    // stages: discovery → problem → solution → pricing → close
+    let stage = context.stage || "discovery";
+
+    if (intent === "problem") stage = "problem";
+    if (intent === "pricing") stage = "pricing";
+
+    // ===== 3. CONTROL PROMPT =====
     const systemPrompt = `
-You are a high-level sales operator for Scaleflow AI.
+You are a sharp sales operator for Scaleflow AI.
 
-You speak like someone who has worked with real clients and knows exactly what works.
-
-You do NOT sound like:
-- a chatbot
-- a support agent
-- a consultant
-
-You sound like:
-- sharp
-- observant
-- slightly direct
-- confident
-
-RULES:
-- Max 2 sentences per reply
-- No fluff, no long explanations
-- No repeating questions
-- No generic phrases
-- Never say "I help businesses" or "our solutions"
-- Avoid obvious AI patterns
+You understand business problems instantly and speak with clarity.
 
 STYLE:
-- Call out what you notice
-- Then move conversation forward
-- Keep it natural, slightly casual
+- Max 2 sentences
+- Natural, direct, confident
+- No fluff, no corporate tone
+- No repetition
+- No emojis
 
-EXAMPLES:
-BAD:
-"How many messages are you handling daily?"
+BEHAVIOR:
+- Do not ask unnecessary questions
+- Lead the conversation forward
+- Make observations, not generic replies
+- Never sound like a chatbot
 
-GOOD:
-"Alright, so you're probably getting decent volume but not converting most of it."
+IMPORTANT:
+- Do NOT assume platform (no Instagram bias)
+- Keep replies practical and grounded
+- Avoid phrases like "I help businesses"
 
-BAD:
-"You need automation"
-
-GOOD:
-"Yeah, that's exactly where most leads slip — replies get delayed or missed."
-
-FLOW:
-1. Acknowledge briefly
-2. Make an observation
-3. Ask ONE smart question OR move toward next step
+STAGE GUIDE:
+- discovery → understand situation
+- problem → highlight inefficiency
+- solution → position automation
+- pricing → give price confidently
+- close → move toward action
 
 PRICING RULE:
-When asked pricing:
-→ Give price confidently
-→ Do NOT over-explain
-→ Ask 1 sharp qualifier
-
-Example:
-"Most setups start around ₹3–5k/month depending on volume. Roughly how busy are your DMs right now?"
+If asked price:
+"Most setups start around ₹3–5k/month depending on volume."
+Keep it short.
 
 GOAL:
-Sound like someone who understands the problem instantly and leads the conversation — not someone trying to “figure it out”.
+Sound like someone who already understands the situation and guides the user toward a solution.
 `;
 
-    const followUps = [
-    "Roughly how busy are your DMs right now?",
-    "Are you missing replies or just not converting?",
-    "Is the issue speed or follow-ups?",
-     "Do you feel leads drop off after first message?"
-    ];
-    const randomFollowUp = followUps[Math.floor(Math.random() * followUps.length)];
-	return `Makes sense 👍 ${randomFollowUp}`;
-
-	const response = await openai.chat.completions.create({
+    // ===== 4. AI GENERATION =====
+    const response = await openai.chat.completions.create({
       model: "gpt-4o-mini",
+      temperature: 0.6,
       messages: [
         { role: "system", content: systemPrompt },
-        ...chatHistory,
-        { role: "user", content: userMessage }
-      ],
-      temperature: 0.7
+        {
+          role: "user",
+          content: `User said: "${userMessage}"
+Current stage: ${stage}
+Intent: ${intent}
+
+Generate the best possible reply.`
+        }
+      ]
     });
 
     let reply = response.choices[0].message.content;
 
-    // 🔥 CLEANING LAYER
-    reply = cleanReply(reply, chatHistory);
-	reply = reply.replace(/I help businesses/gi, "We set up systems that");
+    // ===== 5. FILTER LAYER =====
+    function filterReply(text) {
+      let cleaned = text;
 
-    return reply;
+      // remove weak phrases
+      cleaned = cleaned.replace(/makes sense/gi, "");
+      cleaned = cleaned.replace(/got you/gi, "");
+      cleaned = cleaned.replace(/great question/gi, "");
+
+      // remove instagram bias
+      cleaned = cleaned.replace(/instagram/gi, "your messages");
+
+      // limit to 2 sentences
+      const sentences = cleaned.split(".");
+      if (sentences.length > 2) {
+        cleaned = sentences.slice(0, 2).join(".") + ".";
+      }
+
+      // limit questions
+      const qCount = (cleaned.match(/\?/g) || []).length;
+      if (qCount > 1) {
+        cleaned = cleaned.split("?")[0] + "?";
+      }
+
+      return cleaned.trim();
+    }
+
+    reply = filterReply(reply);
+
+    // ===== 6. FAILSAFE =====
+    if (!reply || reply.length < 5) {
+      reply = "Tell me a bit about how you're currently handling your incoming messages.";
+    }
+
+    return {
+      reply,
+      stage
+    };
 
   } catch (error) {
-    console.error("OpenAI Error:", error.message);
-    return "Hey, something went wrong on my end. Give me a second and try again 🙂";
+    console.error("OpenAI Error:", error);
+
+    return {
+      reply: "Something went wrong on my end. Try again in a moment.",
+      stage: "discovery"
+    };
   }
 };
-
-
-// 🔥 ELITE CLEANER FUNCTION
-function cleanReply(reply, chatHistory) {
-  if (!reply) return "";
-
-  // Remove weak phrases
-  const removeWords = [
-    "it sounds like",
-    "you know",
-    "great way",
-    "typically",
-    "depends",
-    "we specialize",
-    "we focus on"
-  ];
-
-  removeWords.forEach(word => {
-    reply = reply.replace(new RegExp(word, "gi"), "");
-  });
-
-  // Remove repeated questions
-  const lastBotMessages = chatHistory
-    .filter(m => m.role === "assistant")
-    .map(m => m.content)
-    .join(" ");
-
-  if (lastBotMessages.includes("handling all messages")) {
-    reply = reply.replace(/Are you.messages.\?/gi, "");
-  }
-
-  // Limit to 2 sentences max
-  let parts = reply.split(/[.!?]/).filter(s => s.trim());
-  reply = parts.slice(0, 2).join(". ") + ".";
-
-  return reply.trim();
-}
