@@ -27,7 +27,7 @@ module.exports = function filterReply(reply) {
     isBad: bannedPhrases.some(p => lower.includes(p)),
     isWeak: weakOpeners.some(p => lower.includes(p)),
     isAggressive: aggressivePhrases.some(p => lower.includes(p)),
-    isTooLong: reply.length > 200,
+    isTooLong: reply.length = 500 or 800,
     hasQuestion: reply.includes("?")
   };
 };
