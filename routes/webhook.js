@@ -74,20 +74,15 @@ module.exports = (openai) => {
 
   console.log("✅ FB SUCCESS:", response.data);
 
-} catch (err) {
-  console.error("❌ FB ERROR:", err.response?.data || err.message);
-}
+    try {
+  // your logic
 
-        return res.status(200).send("EVENT_RECEIVED");
-      } else {
-        return res.sendStatus(404);
-      }
+      return res.status(200).send("EVENT_RECEIVED");
 
     } catch (error) {
       console.error("❌ SERVER ERROR:", error.message);
       return res.sendStatus(500);
     }
-  });
 
   return router;
 };
