@@ -55,13 +55,15 @@ module.exports = (openai) => {
 
           console.log("🤖 AI:", botReply);
 
-          // 🚀 Send message to Facebook / Instagram
+          // ✅ extract only text
+          const replyText = botReply?.reply || "Sorry, something went wrong.";
+
           try {
             const response = await axios.post(
-              `https://graph.facebook.com/v18.0/me/messages`,
+              "https://graph.facebook.com/v18.0/me/messages",
               {
                 recipient: { id: senderId },
-                message: { text: botReply }
+                message: { text: replyText }
               },
               {
                 params: {
@@ -70,12 +72,11 @@ module.exports = (openai) => {
               }
             );
 
-            console.log("✅ FB SUCCESS:", response.data);
+  console.log("✅ FB SUCCESS:", response.data);
 
-          } catch (err) {
-            console.error("❌ FB ERROR:", err.response?.data || err.message);
-          }
-        }
+} catch (err) {
+  console.error("❌ FB ERROR:", err.response?.data || err.message);
+}
 
         return res.status(200).send("EVENT_RECEIVED");
       } else {
