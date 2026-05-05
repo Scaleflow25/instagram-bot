@@ -24,11 +24,14 @@ module.exports = (openai) => {
   router.post("/webhook", async (req, res) => {
     const body = req.body;
 
-    // ⚡ ALWAYS respond to FB quickly (important)
+    // ⚡ Always respond fast
     res.status(200).send("EVENT_RECEIVED");
 
     try {
       if (body.object !== "page" && body.object !== "instagram") return;
+
+      // 🔥 Detect platform
+      const isInstagram = body.object === "instagram";
 
       for (const entry of body.entry) {
 
@@ -57,32 +60,36 @@ module.exports = (openai) => {
 
         console.log("🤖 AI RAW:", botReply);
 
-        // ✅ ensure clean text
+        // ✅ clean reply
         let replyText =
           typeof botReply === "string"
             ? botReply
             : botReply?.reply || "Sorry, something went wrong.";
 
-        // 🧹 remove invalid characters (IMPORTANT for FB error #100)
         replyText = replyText.replace(/[^\x00-\x7F]/g, "").trim();
 
         if (!replyText) replyText = "Got it 👍";
 
+        // 🔥 SELECT TOKEN BASED ON PLATFORM
+        const ACCESS_TOKEN = isInstagram
+          ? process.env.IG_PAGE_ACCESS_TOKEN
+          : process.env.PAGE_ACCESS_TOKEN;
+
         // 🚀 Send message
         await axios.post(
-          "https://graph.facebook.com/v18.0/me/messages",
+          "https://graph.facebook.com/v19.0/me/messages",
           {
             recipient: { id: senderId },
             message: { text: replyText }
           },
           {
             params: {
-              access_token: process.env.PAGE_ACCESS_TOKEN
+              access_token: ACCESS_TOKEN
             }
           }
         );
 
-        console.log("✅ FB MESSAGE SENT");
+        console.log(`✅ MESSAGE SENT (${isInstagram ? "IG" : "FB"})`);
       }
 
     } catch (error) {
