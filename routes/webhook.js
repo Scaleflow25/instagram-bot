@@ -62,13 +62,33 @@ module.exports = (openai) => {
 
           const senderId = messaging.sender?.id;
 
-          const userMessage =
-            messaging.message?.text ||
-            messaging.message?.quick_reply?.payload;
+          let userMessage = null;
 
-          if (!senderId || !userMessage) {
+          if (messaging.message) {
 
-            console.log("❌ Missing sender or message");
+            userMessage =
+              messaging.message.text ||
+              messaging.message.quick_reply?.payload;
+
+        }
+
+          if (!userMessage && messaging.postback) {
+
+            userMessage = messaging.postback.payload;
+
+}
+
+          if (!senderId) {
+
+            console.log("❌ Missing sender ID");
+            continue;
+
+          }
+
+          if (!userMessage) {
+
+            console.log("⚠️ Non-text event received");
+            console.log(JSON.stringify(messaging, null, 2));
             continue;
 
           }
