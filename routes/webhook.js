@@ -31,7 +31,7 @@ module.exports = (openai) => {
       if (body.object !== "page" && body.object !== "instagram") return;
 
       // 🔥 Detect platform
-      const isInstagram = body.object === "instagram";
+      const isInstagram = !!entry.changes;
 
       for (const entry of body.entry) {
 
@@ -71,9 +71,15 @@ module.exports = (openai) => {
         if (!replyText) replyText = "Got it 👍";
 
         // 🔥 SELECT TOKEN BASED ON PLATFORM
-        const ACCESS_TOKEN = isInstagram
-          ? process.env.IG_PAGE_ACCESS_TOKEN
-          : process.env.PAGE_ACCESS_TOKEN;
+        let ACCESS_TOKEN;
+
+        if (entry.messaging) {
+          // Facebook Messenger
+          ACCESS_TOKEN = process.env.PAGE_ACCESS_TOKEN;
+        } else if (entry.changes) {
+          // Instagram
+          ACCESS_TOKEN = process.env.IG_PAGE_ACCESS_TOKEN;
+        }
 
         // 🚀 Send message
         await axios.post(
