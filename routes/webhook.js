@@ -74,12 +74,8 @@ module.exports = (openai) => {
         let ACCESS_TOKEN;
 
         if (entry.messaging) {
-          // Facebook Messenger
           ACCESS_TOKEN = process.env.PAGE_ACCESS_TOKEN;
-        } else if (entry.changes) {
-          // Instagram
-          ACCESS_TOKEN = process.env.IG_PAGE_ACCESS_TOKEN;
-        }
+        } 
 
         // 🚀 Send message
         await axios.post(
