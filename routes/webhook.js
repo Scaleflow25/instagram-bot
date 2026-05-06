@@ -31,7 +31,7 @@ module.exports = (openai) => {
       if (body.object !== "page" && body.object !== "instagram") return;
 
       // 🔥 Detect platform
-      const isInstagram = !!entry.changes;
+      const isInstagram = !!item.changes;
 
       for (const item of body.entry) {
 
