@@ -83,7 +83,7 @@ module.exports = (openai) => {
 
         // 🚀 Send message
         await axios.post(
-          "https://graph.facebook.com/v19.0/me/messages",
+          "https://graph.facebook.com/v22.0/me/messages",
           {
             recipient: { id: senderId },
             message: { text: replyText }
@@ -99,7 +99,9 @@ module.exports = (openai) => {
       }
 
     } catch (error) {
-      console.error("❌ SERVER ERROR:", error.response?.data || error.message);
+      console.error("❌ SERVER ERROR:");
+      console.log(error.response?.data);
+      console.log(error.message);
     }
   });
 
