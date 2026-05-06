@@ -33,11 +33,11 @@ module.exports = (openai) => {
       // 🔥 Detect platform
       const isInstagram = !!entry.changes;
 
-      for (const entry of body.entry) {
+      for (const item of body.entry) {
 
-        const event = entry.messaging
-          ? entry.messaging[0]
-          : entry.changes?.[0]?.value;
+        const event = item.messaging
+          ? item.messaging[0]
+          : item.changes?.[0]?.value;
 
         if (!event) continue;
 
