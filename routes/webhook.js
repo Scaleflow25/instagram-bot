@@ -19,6 +19,9 @@ module.exports = (openai) => {
       return res.sendStatus(403);
     }
   });
+  
+  console.log("PLATFORM:", messaging.sender.id);
+  console.log(JSON.stringify(req.body, null, 2));
 
   // Incoming messages
   router.post("/webhook", async (req, res) => {
